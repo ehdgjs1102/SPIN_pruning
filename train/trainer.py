@@ -5,7 +5,7 @@ from torchgeometry import angle_axis_to_rotation_matrix, rotation_matrix_to_angl
 import cv2
 
 from datasets import MixedDataset
-from models import SMPL, densenet121, comp_resnet50, mobilenet_v2, comp_dense, final_model
+from models import SMPL, densenet121, comp_resnet50, comp_dense, final_model
 from smplify import SMPLify
 from utils.geometry import batch_rodrigues, perspective_projection, estimate_translation
 
