@@ -25,7 +25,7 @@ import torchgeometry as tgm
 
 import config
 import constants
-from models import my_model, SMPL, densenet121, comp_resnet50, mobilenet_v2, comp_dense, final_model
+from models import my_model, SMPL, densenet121, comp_resnet50, comp_dense, final_model
 from datasets import BaseDataset
 from utils.imutils import uncrop
 from utils.pose_utils import reconstruction_error
