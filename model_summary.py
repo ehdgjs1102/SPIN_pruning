@@ -7,7 +7,7 @@ import os
 
 import config
 
-from models import  densenet121, comp_resnet50, mobilenet_v2, comp_dense, final_model
+from models import  densenet121, comp_resnet50, comp_dense, final_model
 
 from torchinfo import summary
 
