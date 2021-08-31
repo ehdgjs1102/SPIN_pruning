@@ -1,0 +1,48 @@
+resnet
+
+set1
+compress_rate = [0.2] + [0.2]*4 + [0.2]*16
+
+
+set2
+stage_rate = [0, 0, 0, 0] 
+covn2_rate = [0.2, 0.2, 0.2] 
+conv3_rate = [0.2, 0.2, 0.2, 0.2]
+conv4_rate = [0.2, 0.2, 0.2, 0.2, 0.2, 0.2]
+conv5_rate = [0.2, 0.2, 0.2]
+compress_rate = stage_rate + covn2_rate + conv3_rate + conv4_rate + conv5_rate
+
+
+densenet
+
+compress_rate = [ [0], [0]*6, [0]*12, [0]*24, [0]*16 ]
+
+dense4
+compress_rate = [ [0], [0.2]*6, [0.2]*12, [0.1]*24, [0.1]*16 ]
+
+dense5
+compress_rate = [ [0.2], [0.2]*6, [0.2]*12, [0.2]*24, [0.2]*16 ]
+
+dense6
+compress_rate = [ [0.3], [0.3]*6, [0.3]*12, [0.3]*24, [0.3]*16 ]
+
+dense6.5
+compress_rate = [ [0.35], [0.35]*6, [0.35]*12, [0.35]*24, [0.35]*16 ]
+
+dense7
+compress_rate = [ [0.4], [0.4]*6, [0.4]*12, [0.4]*24, [0.4]*16 ]
+
+dense8
+compress_rate = [ [0.5], [0.5]*6, [0.5]*12, [0.5]*24, [0.5]*16 ]
+
+dense9
+compress_rate = [ [0.6], [0.6]*6, [0.6]*12, [0.6]*24, [0.6]*16 ]
+
+dense10
+compress_rate = [ [0.7], [0.7]*6, [0.7]*12, [0.7]*24, [0.7]*16 ]
+
+dense11
+compress_rate = [ [0.8], [0.8]*6, [0.8]*12, [0.8]*24, [0.8]*16 ]
+
+dense12
+compress_rate = [ [0.9], [0.9]*6, [0.9]*12, [0.9]*24, [0.9]*16 ]
