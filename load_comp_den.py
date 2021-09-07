@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import os
 import config
-from models import densenet121, comp_resnet50, comp_dense, final_model
+from models import densenet121, comp_resnet50, comp_dense, densenet_2stage, densenet_3stage
 import torch.nn as nn
 
 def load_densenet_model(model, oristate_dict):
@@ -17,7 +17,7 @@ def load_densenet_model(model, oristate_dict):
     all_honey_conv_weight = []
 
     bn_part_name=['.weight','.bias','.running_mean','.running_var']#,'.num_batches_tracked']
-    prefix = 'rank_densenet0.35_spinfits/densenet121_limit3/rank_conv'
+    prefix = 'rank_densenet121_spinfits/densenet121_limit3/rank_conv'
     subfix = '.npy'
     cnt=1
 
@@ -26,6 +26,7 @@ def load_densenet_model(model, oristate_dict):
     oriweight = oristate_dict[conv_weight_name]
     curweight = state_dict[conv_weight_name]
     orifilter_num = oriweight.size(0)
+    start_filternum = orifilter_num
     currentfilter_num = curweight.size(0)
 
     if orifilter_num != currentfilter_num:
@@ -42,7 +43,9 @@ def load_densenet_model(model, oristate_dict):
         state_dict[conv_weight_name] = oriweight
         for bn_part in bn_part_name:
             state_dict['features.norm0' + bn_part] = oristate_dict['features.norm0'+bn_part]
-        last_select_index = np.array(range(int(64*0.65)))
+        # last_select_index = np.array(range(int(64*0.65)))
+        # last_select_index = np.array(range(64))
+        last_select_index = np.array(range(orifilter_num))
 
     state_dict['features.norm0' + '.num_batches_tracked'] = oristate_dict['features.norm0' + '.num_batches_tracked']
 
@@ -54,16 +57,17 @@ def load_densenet_model(model, oristate_dict):
         if last_select_index is not None:
             last_concat_index = last_select_index
         else : 
-            # last_concat_index = np.array(range(int((2**(layer+6)))))
+            last_concat_index = np.array(range(start_filternum))
+            # last_concat_index = np.array(range(int(2**(layer+6))))
             
-            if layer == 0:
-                last_concat_index = np.array(range(int(64*0.65)))
-            elif layer == 1:
-                last_concat_index = np.array(range(80))
-            elif layer == 2:
-                last_concat_index = np.array(range(160))
-            elif layer == 3:
-                last_concat_index = np.array(range(320))
+            # if layer == 0:
+            #     last_concat_index = np.array(range(int(64*0.65)))
+            # elif layer == 1:
+            #     last_concat_index = np.array(range(80))
+            # elif layer == 2:
+            #     last_concat_index = np.array(range(160))
+            # elif layer == 3:
+            #     last_concat_index = np.array(range(320))
             
         
         block_name = 'features.' + 'denseblock' + str(layer + 1) + '.'
@@ -94,7 +98,10 @@ def load_densenet_model(model, oristate_dict):
                     select_index.sort()
                     
                     if last_select_index is not None:
+                        
                         print('(input&output)loading rank from: ' + prefix + str(cnt) + subfix)
+                        print('input : ', len(last_select_index))
+                        print('output : ', len(select_index))
                         # print('select_index : ', select_index)
                         # print('Last_select_index : ', last_select_index)
                         for index_j, j in enumerate(last_select_index):
@@ -106,6 +113,8 @@ def load_densenet_model(model, oristate_dict):
 
                     else:
                         print('(output)loading rank from: ' + prefix + str(cnt) + subfix)
+                        print('input : ', len(oristate_dict[conv_weight_name][0]))
+                        print('output : ', len(select_index))
                         # print('select_index : ', select_index)
                         for index_i, i in enumerate(select_index):
                             state_dict[conv_weight_name][index_i] = oristate_dict[conv_weight_name][i]
@@ -119,6 +128,8 @@ def load_densenet_model(model, oristate_dict):
 
                 elif last_select_index is not None:
                     print('(input)loading rank from: ' + prefix + str(cnt) + subfix)
+                    print('input : ', len(last_select_index))
+                    print('output : ', orifilter_num)
                     # print('Last_select_index : ', last_select_index)
                     for index_j, j in enumerate(last_select_index):
                         for index_i in range(orifilter_num):
@@ -133,6 +144,8 @@ def load_densenet_model(model, oristate_dict):
 
                 else:
                     print('(no_change)loading rank from: ' + prefix + str(cnt) + subfix)
+                    print('input : ', len(oristate_dict[conv_weight_name][0]))
+                    print('output : ', orifilter_num)
                     state_dict[conv_weight_name] = oriweight
                     for bn_part in bn_part_name:
                         state_dict[bn_name + bn_part] = oristate_dict[bn_name + bn_part]
@@ -144,23 +157,27 @@ def load_densenet_model(model, oristate_dict):
              
                 cnt+=1
                 if num_conv ==2 :
-                    if layer == 0:
-                        ori_out_num = int(64*0.65) + int(32*0.65) *k
-                    elif layer == 1:
-                        ori_out_num = 80 + int(32*0.65) *k
-                    elif layer == 2:
-                        ori_out_num = 160 + int(32*0.65) *k
-                    elif layer == 3:
-                        ori_out_num = 320 + int(32*0.65) *k
-                    # ori_out_num = int((2**(layer+6)))  + 32 * k
+                    # if layer == 0:
+                    #     ori_out_num = int(64*0.65) + int(32*0.65) *k
+                    # elif layer == 1:
+                    #     ori_out_num = 80 + int(32*0.65) *k
+                    # elif layer == 2:
+                    #     ori_out_num = 160 + int(32*0.65) *k
+                    # elif layer == 3:
+                    #     ori_out_num = 320 + int(32*0.65) *k
+
+                    ori_out_num = start_filternum  + orifilter_num * k
+                    
+                    # ori_out_num = 2**(layer+6)  + 32 * k
+                    # print(ori_out_num)
                     if last_select_index is not None:
                         change = last_select_index + ori_out_num
                         last_concat_index = np.concatenate((last_concat_index, change), axis=0 )
                     else :
-                        no_change = np.array(range(int(32*0.65))) 
+                        no_change = np.array(range(orifilter_num)) 
                         no_change = no_change + ori_out_num
                         last_concat_index = np.concatenate((last_concat_index, no_change), axis=0 )
-                print(len(last_concat_index))
+                
 
 
 
@@ -173,6 +190,7 @@ def load_densenet_model(model, oristate_dict):
             oriweight = oristate_dict[conv_weight_name]
             curweight = state_dict[conv_weight_name]
             orifilter_num = oriweight.size(0)
+            start_filternum = orifilter_num
             currentfilter_num = curweight.size(0)
             last_select_index = last_concat_index
         
@@ -185,6 +203,8 @@ def load_densenet_model(model, oristate_dict):
 
                 if last_select_index is not None:
                     print('(input&output)loading rank from: ' + prefix + str(cnt) + subfix)
+                    print('input : ', len(last_select_index))
+                    print('output : ', len(select_index))
                     # print('select_index : ', select_index)
                     # print('Last_select_index : ', last_select_index)
                     for index_j, j in enumerate(last_select_index):
@@ -196,6 +216,8 @@ def load_densenet_model(model, oristate_dict):
 
                 else:
                     print('(output)loading rank from: ' + prefix + str(cnt) + subfix)
+                    print('input : ', len(oristate_dict[conv_weight_name][0]))
+                    print('output : ', len(select_index))
                     # print('select_index : ', select_index)
                     for index_i, i in enumerate(select_index):
                         state_dict[conv_weight_name][index_i] = oristate_dict[conv_weight_name][i]
@@ -208,6 +230,8 @@ def load_densenet_model(model, oristate_dict):
 
             elif last_select_index is not None:
                 print('(input)loading rank from: ' + prefix + str(cnt) + subfix)
+                print('input : ', len(last_select_index))
+                print('output : ', orifilter_num)
                 # print('Last_select_index : ', last_select_index)
                 for index_j, j in enumerate(last_select_index):
                     for index_i in range(orifilter_num):
@@ -222,6 +246,8 @@ def load_densenet_model(model, oristate_dict):
 
             else:
                 print('(no_change)loading rank from: ' + prefix + str(cnt) + subfix)
+                print('input : ', len(oristate_dict[conv_weight_name][0]))
+                print('output : ', orifilter_num)
                 state_dict[conv_weight_name] = oriweight
                 for bn_part in bn_part_name:
                     state_dict[bn_name + bn_part] = \
@@ -239,6 +265,7 @@ def load_densenet_model(model, oristate_dict):
     last_select_index = last_concat_index
     if last_select_index is not None:
         print('(input)norm5')
+        print('norm : ', len(last_select_index))
         for index_j, j in enumerate(last_select_index):
     
             for bn_part in bn_part_name:
@@ -262,10 +289,20 @@ def load_densenet_model(model, oristate_dict):
         if isinstance(module, nn.Linear):
             print('fill fc layer ' + str(name))
             if name == 'fc1':
+                
                 if last_select_index is not None :
-                    orifilter_num = state_dict[name + '.weight'].size(0)
-                    for index_j, j in enumerate(last_select_index):
-                        for index_i in range(orifilter_num):
+                    
+                    new_output = state_dict[name + '.weight'].size(0)
+                    orifilter_input = oristate_dict[name + '.weight'][0].size(0)
+                    
+                    input_num = orifilter_input-157
+                    print(input_num)
+                    change = np.array(range(157)) + input_num
+                    last_concat_index = np.concatenate((last_select_index, change), axis=0 )
+                    print('input : ', len(last_concat_index))
+                    print('output : ', new_output)
+                    for index_j, j in enumerate(last_concat_index):
+                        for index_i in range(new_output):
                             state_dict[name + '.weight'][index_i][index_j] = oristate_dict[name + '.weight'][index_i][j]
 
                     state_dict[name + '.bias'] = oristate_dict[name + '.bias']
@@ -280,18 +317,18 @@ def load_densenet_model(model, oristate_dict):
     model.load_state_dict(state_dict)
     checkpoint = {}
     checkpoint['model'] = model.state_dict()
-    torch.save(checkpoint, 'pruned_model/densenet(0.35+re)_spinfits' + '.pt' ) 
+    torch.save(checkpoint, 'pruned_model/densenet0.35_0.8_1stage' + '.pt' ) 
   
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 
 compress_rate = [ [0.35], [0.35]*6, [0.35]*12, [0.35]*24, [0.35]*16 ]
-model = final_model(config.SMPL_MEAN_PARAMS, compress_rate).to(device)
+model = densenet_2stage(config.SMPL_MEAN_PARAMS, compress_rate).to(device)
 
-compress_rate = [ [0.35], [0.35]*6, [0.35]*12, [0.35]*24, [0.35]*16 ]
+compress_rate = [ [0.], [0.]*6, [0.]*12, [0.]*24, [0.]*16 ]
 origin_model =  comp_dense(config.SMPL_MEAN_PARAMS, compress_rate).to(device)
 
-checkpoint = torch.load('/home/urp10/SPIN/logs/densenet_0.35_with_spinfits2/checkpoints/2021_08_30-05_40_27_best.pt')
+checkpoint = torch.load('/home/urp10/SPIN/models_trained/densenet121.pt')
 origin_model.load_state_dict(checkpoint['model'])
 oristate_dict = origin_model.state_dict()
 load_densenet_model(model, oristate_dict)
